@@ -1,6 +1,6 @@
-# drawii
+# Binary tree visualizer
 
-This template should help get you started developing with Vue 3 in Vite.
+Visualize the tree on HTML canvas
 
 ## Recommended IDE Setup
 
