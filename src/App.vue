@@ -1,142 +1,65 @@
-<script setup>
-import { ref, onMounted } from "vue";
-import {
-  getRequiredHeightAndWidth,
-  DEFAULT_CONFIG,
-  drawNode,
-  connectEdges,
-  treeConstructor,
-} from "./utils/treeUtils";
-import { generateTree } from "./utils/randomTree";
-const canvas = ref(null);
-const textarea = ref("");
-
-onMounted(() => {
-  localGenerate();
-});
-
-function drawBinaryTree(root, canvasElement) {
-  const maxWidth = window.innerWidth;
-  const maxHeight = window.innerHeight;
-  canvas.value.width = maxWidth;
-  canvas.value.height = maxHeight;
-  const { requiredCanvasWidth, requiredCanvasHeight } =
-    getRequiredHeightAndWidth(root);
-
-  const windowWidthCenter = maxWidth / 2;
-  const requiredWidthCenter = requiredCanvasWidth / 2;
-
-  const xStart = windowWidthCenter - requiredWidthCenter;
-  const xEnd = windowWidthCenter + requiredWidthCenter;
-
-  const horizontalConfig = { xStart, xEnd };
-
-  // Draw
-  recursivelyDrawNodes(root, canvasElement, 0.5, horizontalConfig);
-}
-
-function recursivelyDrawNodes(
-  root,
-  canvasElement,
-  currentLevel,
-  horizontalConfig
-) {
-  const { xStart, xEnd } = horizontalConfig;
-  const xPos = (xStart + xEnd) / 2;
-  const yPos = currentLevel * DEFAULT_CONFIG.nodeHeightSpacing;
-
-  drawNode(root.value, canvasElement.value, xPos, yPos);
-  if (root.left !== null) {
-    const leftNodeHorizontalConfig = { xStart, xEnd: xPos };
-    recursivelyDrawNodes(
-      root.left,
-      canvasElement,
-      currentLevel + 1,
-      leftNodeHorizontalConfig
-    );
-    connectEdges(
-      canvasElement.value,
-      {
-        xStart: xPos,
-        xEnd: (xStart + xPos) / 2,
-      },
-      {
-        yStart: yPos + DEFAULT_CONFIG.radius,
-        yEnd:
-          (currentLevel + 1) * DEFAULT_CONFIG.nodeHeightSpacing -
-          DEFAULT_CONFIG.radius,
-      }
-    );
-  }
-  if (root.right !== null) {
-    const rightNodeHorizontalConfig = { xStart: xPos, xEnd };
-    recursivelyDrawNodes(
-      root.right,
-      canvasElement,
-      currentLevel + 1,
-      rightNodeHorizontalConfig
-    );
-    connectEdges(
-      canvasElement.value,
-      {
-        xStart: xPos,
-        xEnd: (xPos + xEnd) / 2,
-      },
-      {
-        yStart: yPos + DEFAULT_CONFIG.radius,
-        yEnd:
-          (currentLevel + 1) * DEFAULT_CONFIG.nodeHeightSpacing -
-          DEFAULT_CONFIG.radius,
-      }
-    );
-  }
-}
-
-const clearCanvas = () => {
-  const context = canvas.value.getContext("2d");
-  context.clearRect(0, 0, canvas.width, canvas.height);
-};
-
-let prevValue = ref("");
-const initTree = (value) => {
-  prevValue.value = value;
-
-  clearCanvas();
-
-  const root = treeConstructor(value);
-  drawBinaryTree(root, canvas);
-};
-
-const localApply = () => {
-  if (textarea.value === "") return;
-  initTree(textarea.value);
-};
-
-const localClear = () => {
-  textarea.value = "";
-  clearCanvas();
-};
-
-const localGenerate = () => {
-  const arr = generateTree();
-  const tree = arr
-    .map((val) => (val === null ? "null" : val.toString()))
-    .join(",");
-  textarea.value = tree;
-  initTree(tree);
-};
-</script>
-
 <template>
-  <div class="inputContainer">
-    <textarea class="input" rows="5" v-model="textarea"></textarea>
-    <div class="actionBtns">
-      <button class="applyBtn" @click="localApply()">Apply</button>
-      <button class="clearBtn" @click="localClear()">Clear</button>
-    </div>
-    <button class="generateBtn" @click="localGenerate()">
-      Generate Random Tree
-    </button>
+  <div class="p-10">
+    <CandlestickChart :data="candleData" :width="600" :height="500" />
   </div>
-  <canvas ref="canvas"></canvas>
 </template>
+
+<script setup>
+import { ref } from "vue";
+import CandlestickChart from "./components/CandlestickChart.vue";
+
+// Example data
+const chartData = ref([
+  {
+    timestamp: Date.now() - 7 * 24 * 60 * 60 * 1000,
+    open: 100,
+    high: 105,
+    low: 98,
+    close: 103,
+    volume: 1000000,
+  },
+]);
+
+function generateCandleData(count = 50) {
+  const data = [];
+  let basePrice = 100;
+  // One day in milliseconds
+  const oneDay = 24 * 60 * 60 * 1000;
+  const endDate = new Date();
+
+  for (let i = 0; i < count; i++) {
+    // Generate random price movements 2% volatility
+    const volatility = basePrice * 0.02;
+    const open = basePrice + (Math.random() - 0.5) * volatility;
+    const multiplier = 2;
+
+    const high = Math.max(open + Math.random() * volatility * multiplier);
+    const low = Math.min(open - Math.random() * volatility * multiplier);
+
+    // Generate close price between high and low
+    const close = low + Math.random() * (high - low);
+
+    const volume = Math.floor(Math.random() * 1000000) + 500000;
+
+    // Create timestamp for each day, moving backwards from current date
+    const timestamp = endDate.getTime() - (count - i - 1) * oneDay;
+
+    data.push({
+      timestamp,
+      open: Number(open.toFixed(2)),
+      high: Number(high.toFixed(2)),
+      low: Number(low.toFixed(2)),
+      close: Number(close.toFixed(2)),
+      volume,
+    });
+
+    // Use close as the next day's base price
+    basePrice = close;
+  }
+
+  return data;
+}
+
+// Generate the data
+const candleData = generateCandleData(100);
+</script>
