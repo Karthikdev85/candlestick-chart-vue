@@ -8,7 +8,6 @@
 import { ref } from "vue";
 import CandlestickChart from "./components/CandlestickChart.vue";
 
-// Example data
 const chartData = ref([
   {
     timestamp: Date.now() - 7 * 24 * 60 * 60 * 1000,

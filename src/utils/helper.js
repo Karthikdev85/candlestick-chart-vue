@@ -1,8 +1,7 @@
 export const absValue = (num) => (num ^ (num >> 31)) - (num >> 31);
-
 export const calculatePriceStep = (range) => {
-  const steps = [0.01, 0.05, 0.1, 0.5, 1, 5, 10, 50, 100, 500];
-  return steps.find((step) => range / step <= 10) || 100;
+  const steps = [0.01, 0.05, 0.1, 0.5, 1, 5, 10];
+  return steps.find((step) => range / step <= 10) || 20;
 };
 
 export const formatPrice = (price) => price?.toFixed(2) ?? "0.00";

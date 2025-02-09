@@ -1,5 +1,7 @@
 <template>
-  <div class="chart-container relative">
+  <div
+    class="chart-container relative grid grid-cols-[1fr_auto] grid-rows-[auto_auto]"
+  >
     <canvas
       ref="chartCanvas"
       :width="width"
@@ -8,8 +10,25 @@
       @mouseout="handleMouseOut"
       @wheel.prevent="handleWheel"
       @mousedown="handleMouseDown"
-      class="border border-gray-200 rounded"
+      class="border border-gray-200 rounded row-span-1 col-span-1"
     ></canvas>
+    <!-- <canvas
+      width="70"
+      :height="height"
+
+      class="border border-gray-200 rounded row-span-1 col-start-2"
+    ></canvas>
+    <canvas
+      :width="width"
+      height="50"
+      class="border border-gray-200 rounded col-span-2 row-start-2"
+    ></canvas> -->
+    <PriceChart
+      :height="height"
+      :priceLabels="priceLabels"
+      :priceRange="priceRange"
+    />
+    <TimeChart :width="width" />
 
     <div
       class="absolute top-0 right-0 h-full flex flex-col justify-between pr-2 text-xs text-gray-600"
@@ -37,6 +56,8 @@
 
 <script setup>
 import { ref, onMounted, watch, computed, reactive, onUnmounted } from "vue";
+import PriceChart from "./PriceChart.vue";
+import TimeChart from "./TimeChart.vue";
 import {
   calculatePriceStep,
   formatPrice,
@@ -118,9 +139,8 @@ const visiblePriceRange = reactive({
 const calculateVisiblePriceRange = () => {
   const start = startIndex.value;
   const end = endIndex.value;
-  console.log({ start, end });
-  const visibleData = props.data.slice(start, end + 1);
 
+  const visibleData = props.data.slice(start, end + 1);
   if (visibleData.length === 0) {
     visiblePriceRange.baseMin = 0;
     visiblePriceRange.baseMax = 0;
@@ -147,6 +167,7 @@ const priceRange = computed(() => ({
 const priceLabels = computed(() => {
   const { min, max } = priceRange.value;
   const range = max - min;
+  console.log({ visiblePriceRange });
   const step = calculatePriceStep(range);
   return Array.from(
     { length: Math.floor(range / step) + 1 },
@@ -178,13 +199,13 @@ const drawGrid = () => {
 const drawCandles = () => {
   ctx.value.lineWidth = 1;
 
-  // Calculate first visible index with overscroll
+  // first visible index
   const firstVisibleIndex = Math.max(
     0,
     Math.floor(scrollX.value / candleWidth.value) - 1
   );
 
-  // Calculate last index with buffer
+  // last index with buffer
   const lastVisibleIndex = Math.min(
     props.data.length - 1,
     firstVisibleIndex + Math.ceil(chartWidth.value / candleWidth.value) + 2
@@ -198,7 +219,7 @@ const drawCandles = () => {
   // });
 
   for (let i = firstVisibleIndex; i <= lastVisibleIndex; i++) {
-    if (i >= props.data.length) break; // Stop at actual data end
+    if (i >= props.data.length) break;
 
     const candle = props.data[i];
     const x = margin.left + i * candleWidth.value - scrollX.value;
@@ -260,7 +281,7 @@ const handleMouseDown = (e) => {
   startPriceRange.max = visiblePriceRange.max;
   startScrollX.value = scrollX.value;
 
-  // Add window listeners for reliable mouseup
+  // Add window listeners
   window.addEventListener("mousemove", handleMouseMove);
   window.addEventListener("mouseup", handleMouseUp);
 };
@@ -350,13 +371,36 @@ const handleWheel = (e) => {
       (mouseY / chartHeight.value) *
         (visiblePriceRange.max - visiblePriceRange.min);
 
+    // console.log({
+    //   mousePrice,
+    //   mouseY,
+    //   1:
+    //     (mouseY / chartHeight.value) *
+    //     (visiblePriceRange.max - visiblePriceRange.min),
+    //   2: visiblePriceRange.max,
+    // });
+
     const zoomFactor = e.deltaY < 0 ? 0.9 : 1.1;
+    console.log({
+      zoomFactor,
+    });
 
     // Update visible price range
-    visiblePriceRange.min =
-      mousePrice - (mousePrice - visiblePriceRange.min) * zoomFactor;
-    visiblePriceRange.max =
-      mousePrice + (visiblePriceRange.max - mousePrice) * zoomFactor;
+    // visiblePriceRange.min =
+    //   mousePrice - (mousePrice - visiblePriceRange.min) * zoomFactor;
+    // visiblePriceRange.max =
+    //   mousePrice + (visiblePriceRange.max - mousePrice) * zoomFactor;
+
+    // Calculate the center (midpoint) of the current price range.
+    const midPrice = (visiblePriceRange.max + visiblePriceRange.min) / 2;
+
+    // Compute the current range and the new range after applying the zoom.
+    const currentRange = visiblePriceRange.max - visiblePriceRange.min;
+    const newRange = currentRange * zoomFactor;
+
+    // Set the new min and max so that the center stays the same.
+    visiblePriceRange.min = midPrice - newRange / 2;
+    visiblePriceRange.max = midPrice + newRange / 2;
   }
 
   // drawChart();
